@@ -3,12 +3,13 @@
 
 A professional web utility designed to seamlessly migrate address books from **Mozilla Thunderbird** to **Microsoft Outlook**. It converts one or more CSVs exported from Thunderbird into a unified CSV ready for import into Outlook, automatically adapting column layout maps based on your locale (supporting Italian and US English).
 
-## ✨ Features
+## ✨ Features & Advanced Wizard
 
-- **Multi-file merging**: Upload multiple address books simultaneously (Contacts, Collected Addresses, Personal Address Book, etc.) and merge them into a single file.
-- **Intelligent Deduplication**: Automatically detects duplicates by email, phone, or name, carefully merging their data without loss.
-- **Dynamic Mapping**: Fully maps Thunderbird fields to correct Outlook headers based on detection of the user’s local language.
-- **Preview Tool**: Shows the first rows generated before downloading.
+- **Smart Upload & Grouping**: Group your CSVs into Virtual Groups and rename them on the fly.
+- **Conflict Resolution Engine**: Automatically detects data clashes and prompts you to manually select 'Merge' or 'Keep Both'.
+- **Scrubbing Utilities**: Bulk fix name casing (JOHN DOE -> John Doe) and auto-format phone numbers (+39 prefixes).
+- **Advanced Schema Mapping**: Visually override output fields mapping custom inputs to any Outlook `User 1-4` field.
+- **Live Preview & Export**: Editable preview grid with Data Health Indicators highlighting missing or bad fields before exporting.
 - **100% Client-Side Processing**: Designed with privacy in mind, processing happens exclusively in the browser.
 - **Safe Output**: Emits UTF-8 BOM CSV files required for maximum compatibility with Excel and Outlook import wizards.
 

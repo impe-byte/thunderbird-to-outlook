@@ -3,45 +3,62 @@
     "title": "TB → OL Converter",
     "subtitle": "Thunderbird · Outlook · Migrazione rubrica",
     "step1": "Carica",
-    "step2": "Converti",
-    "step3": "Scarica"
+    "step2": "Scrub",
+    "step3": "Mappa",
+    "step4": "Export"
   },
   "upload": {
-    "title": "Carica file CSV da Thunderbird",
+    "title": "Smart Upload & Grouping",
     "drag_text": "Trascina qui i tuoi CSV",
     "click_text": "o clicca per selezionarli",
-    "hint": "Puoi caricare più rubriche contemporaneamente\n(Contatti, Indirizzi collezionati, Rubrica personale, ecc.)",
+    "hint": "Crea Gruppi Virtuali per gestire al meglio le tue importazioni.",
     "no_files": "Nessun file CSV selezionato.",
     "error_format": "\"{{name}}\" non sembra un CSV di rubrica Thunderbird",
-    "summary_files_one": "1 rubrica caricata",
-    "summary_files_other": "{{count}} rubriche caricate",
-    "summary_contacts": "{{count}} contatti totali (pre-dedup)",
-    "remove": "Rimuovi"
+    "summary_files_one": "1 Gruppo Virtuale",
+    "summary_files_other": "{{count}} Gruppi Virtuali",
+    "summary_contacts": "{{count}} contatti totali",
+    "remove": "Rimuovi",
+    "source_tag": "Abilita Source Tagging (Inserisce il Gruppo nelle Note)",
+    "next_btn": "Procedi allo Scrubbing"
   },
-  "options": {
-    "title": "Opzioni e conversione",
-    "dedup_title": "Rimuovi duplicati",
-    "dedup_desc": "Unisce contatti con stessa email, telefono o nome. I dati vengono conservati.",
-    "mapping_title": "Mappa campi Thunderbird → Outlook",
-    "convert_btn": "Converti {{count}} contatti",
-    "converting": "Conversione in corso...",
-    "error": "Errore durante la conversione: {{message}}"
+  "scrubbing": {
+    "title": "Conflict Resolution & Scrubbing",
+    "auto_casing": "Migliora Casing Nomi (MARIO ROSSI -> Mario Rossi)",
+    "auto_phone": "Formatta Numeri Telefono (+39)",
+    "run_scrub": "Avvia Utility di Pulizia",
+    "scrub_success": "Pulizia completata con successo.",
+    "conflicts_title": "⚠️ Conflitti Rilevati",
+    "conflicts_desc": "Il motore di deduplicazione ha trovato email/telefoni coincidenti ma dati anagrafici discordanti. Come procedo?",
+    "btn_merge": "Unisci Dati",
+    "btn_keep": "Mantieni Entrambi",
+    "resolved_msg": "Tutti i conflitti risolti.",
+    "next_btn": "Procedi al Mapping"
+  },
+  "mapping": {
+    "title": "Advanced Schema Mapping",
+    "desc": "Verifica il mapping standard e configura gli override manuali.",
+    "field_override": "Field Override (Personalizzato 1-4)",
+    "map_to": "Mappa su:",
+    "next_btn": "Procedi all'Anteprima"
   },
   "result": {
-    "title": "Risultato pronto!",
-    "contacts_count": "Contatti",
+    "title": "Live Preview & Export",
+    "contacts_count": "Contatti Finali",
     "with_email": "Con email",
     "with_phone": "Con telefono",
     "with_company": "Con azienda",
     "dedup_removed": "Duplicati rimossi",
-    "preview_title": "Anteprima (prime {{max}} righe)",
-    "preview_more": "+ altri {{remaining}} contatti nel file",
-    "download_btn": "Scarica rubrica_outlook.csv",
-    "download_hint": "Pronto per l'importazione in Outlook tramite File → Apri ed esporta → Import/Esport",
-    "empty_cell": "—"
+    "preview_title": "Anteprima Editabile (clicca su una cella per modificare)",
+    "preview_more": "+ altri {{remaining}} contatti",
+    "download_btn": "Esporta rubrica_outlook.csv",
+    "download_hint": "Pronto per l'importazione in Outlook",
+    "empty_cell": "—",
+    "health_ok": "Ottimo",
+    "health_warn": "Email Mancante",
+    "health_bad": "Formato Errato"
   },
   "footer": {
     "claim": "Where IT Infrastructure meets Intelligent Automation",
-    "privacy": "Elaborazione 100% locale — nessun dato inviato al server"
+    "privacy": "Elaborazione 100% locale — nessun dato inviato ai server"
   }
 }

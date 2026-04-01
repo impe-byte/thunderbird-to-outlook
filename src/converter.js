@@ -86,7 +86,41 @@ function buildInitials(nome, cognome) {
   return '';
 }
 
-export function mapThunderbirdToOutlook(row, sourceTag = '', lang = 'en') {
+// SCRUBBING UTILITIES
+export function applyCaseScrubbing(contacts) {
+  return contacts.map(contact => {
+    const newContact = { ...contact };
+    ['Nome', 'First Name', 'Cognome', 'Last Name'].forEach(f => {
+      if (newContact[f]) {
+        // Simple title case
+        newContact[f] = newContact[f].toLowerCase().replace(/\b\w/g, c => c.toUpperCase());
+      }
+    });
+    return newContact;
+  });
+}
+
+export function applyPhoneScrubbing(contacts) {
+  return contacts.map(contact => {
+    const newContact = { ...contact };
+    const phoneFields = ['Cellulare', 'Mobile Phone', 'Ufficio', 'Business Phone', 'Abitazione', 'Home Phone'];
+    phoneFields.forEach(f => {
+      let val = newContact[f];
+      if (val) {
+        val = val.replace(/\D/g, ''); // strip
+        if (val.startsWith('3') && val.length === 10) val = '+39' + val;
+        else if (val.startsWith('0') && !val.startsWith('00')) val = '+39' + val;
+        else if (val.startsWith('0039')) val = '+' + val.substring(2);
+        else if (val.startsWith('39') && val.length > 10) val = '+' + val;
+        newContact[f] = val;
+      }
+    });
+    return newContact;
+  });
+}
+
+// MAPPING
+export function mapThunderbirdToOutlook(row, sourceTag = '', enableSourceTagging = false, lang = 'en', mapOverrides = {}) {
   const isIt = lang.startsWith('it');
   const nome = (row['Nome'] || '').trim();
   const cognome = (row['Cognome'] || '').trim();
@@ -178,13 +212,29 @@ export function mapThunderbirdToOutlook(row, sourceTag = '', lang = 'en') {
   out[keys.web] = (row['Pagina web 1'] || row['Pagina web 2'] || '').trim();
   out[keys.compleanno] = buildBirthday(row);
 
+  // Field Overrides Mapping for Personalizzati
+  const customMap = { ...mapOverrides };
+
   const notes = [];
   if (row['Note']) notes.push(row['Note'].trim());
-  if (row['Personalizzato 1']) notes.push(`Personalizzato 1: ${row['Personalizzato 1']}`);
-  if (row['Personalizzato 2']) notes.push(`Personalizzato 2: ${row['Personalizzato 2']}`);
-  if (row['Personalizzato 3']) notes.push(`Personalizzato 3: ${row['Personalizzato 3']}`);
-  if (row['Personalizzato 4']) notes.push(`Personalizzato 4: ${row['Personalizzato 4']}`);
-  if (sourceTag) notes.push(`[Source: ${sourceTag}]`);
+  
+  [1, 2, 3, 4].forEach(i => {
+    const key = `Personalizzato ${i}`;
+    const val = row[key];
+    if (val) {
+      if (customMap[key] && customMap[key] !== 'Notes') {
+        // mapped to a specific field (e.g. User 2)
+        out[customMap[key]] = val;
+      } else {
+        notes.push(`${key}: ${val}`);
+      }
+    }
+  });
+
+  if (enableSourceTagging && sourceTag) {
+    notes.push(`[Group: ${sourceTag}]`);
+  }
+  
   out[keys.notes] = notes.join('\n');
 
   out[keys.utente1] = (row['Nome Instant Messenger'] || '').trim();
@@ -212,7 +262,10 @@ export function deduplicateContacts(contacts, lang = 'en') {
   const emailMap = new Map();
   const phoneMap = new Map();
   const nameMap = new Map();
-  const result = [];
+  
+  const resolved = [];
+  const conflicts = []; // Items that need manual resolution
+  
   const columns = getOutlookColumns(lang);
 
   function normalizePhone(p) {
@@ -230,6 +283,19 @@ export function deduplicateContacts(contacts, lang = 'en') {
       target[noteCol] = combined.join('\n');
     }
   }
+  
+  // Conflict detector: Same email/phone but fundamentally different names
+  function isNameConflict(t, s) {
+    const tName = `${t[nomeCol] || ''} ${t[cognomeCol] || ''}`.trim().toLowerCase();
+    const sName = `${s[nomeCol] || ''} ${s[cognomeCol] || ''}`.trim().toLowerCase();
+    // if both missing, no conflict. if one missing, just merge.
+    if (!tName || !sName) return false;
+    // Simple naive check: if they don't share at least one name token, it's a conflict
+    const tParts = tName.split(' ');
+    const sParts = sName.split(' ');
+    const match = tParts.some(p => sParts.includes(p));
+    return !match;
+  }
 
   contacts.forEach(contact => {
     const email = (contact[emailCol] || '').toLowerCase().trim();
@@ -244,10 +310,15 @@ export function deduplicateContacts(contacts, lang = 'en') {
     else if (displayName.length > 2 && nameMap.has(displayName)) existingIdx = nameMap.get(displayName);
 
     if (existingIdx >= 0) {
-      mergeInto(result[existingIdx], contact);
+      const target = resolved[existingIdx];
+      if (isNameConflict(target, contact)) {
+        conflicts.push({ existing: { ...target }, incoming: { ...contact }, existingIdx });
+      } else {
+        mergeInto(target, contact);
+      }
     } else {
-      const idx = result.length;
-      result.push({ ...contact });
+      const idx = resolved.length;
+      resolved.push({ ...contact });
       if (email) emailMap.set(email, idx);
       if (email2) emailMap.set(email2, idx);
       if (phone && phone.length >= 8) phoneMap.set(phone, idx);
@@ -255,6 +326,36 @@ export function deduplicateContacts(contacts, lang = 'en') {
     }
   });
 
+  return { resolved, conflicts };
+}
+
+// Function to handle merging or keeping conflicts
+export function applyConflictResolution(resolved, conflicts, choices, lang = 'en') {
+  const result = [...resolved];
+  const columns = getOutlookColumns(lang);
+  const noteCol = lang.startsWith('it') ? 'Notes' : 'Notes';
+  
+  function mergeInto(target, source) {
+    columns.forEach(col => {
+      if (!target[col] && source[col]) target[col] = source[col];
+    });
+    if (source[noteCol] && target[noteCol] !== source[noteCol]) {
+      const existing = target[noteCol] || '';
+      const incoming = source[noteCol] || '';
+      const combined = [...new Set([...existing.split('\n'), ...incoming.split('\n')])].filter(Boolean);
+      target[noteCol] = combined.join('\n');
+    }
+  }
+
+  conflicts.forEach((conflict, i) => {
+    const choice = choices[i];
+    if (choice === 'merge') {
+      mergeInto(result[conflict.existingIdx], conflict.incoming);
+    } else {
+      result.push(conflict.incoming);
+    }
+  });
+  
   return result;
 }
 
@@ -265,7 +366,6 @@ export function toCSV(contacts, lang = 'en') {
   const rows = contacts.map(c => {
     return columns.map(col => {
       let val = (c[col] || '');
-      // Ensure val is treated as string since numeric could throw error on .includes
       val = String(val).replace(/"/g, '""');
       return val.includes(',') || val.includes('"') || val.includes('\n') ? `"${val}"` : val;
     }).join(',');

@@ -3,42 +3,59 @@
     "title": "TB → OL Converter",
     "subtitle": "Thunderbird · Outlook · Contacts Migration",
     "step1": "Upload",
-    "step2": "Convert",
-    "step3": "Download"
+    "step2": "Scrub",
+    "step3": "Map",
+    "step4": "Preview"
   },
   "upload": {
-    "title": "Upload Thunderbird CSV files",
+    "title": "Upload & Grouping",
     "drag_text": "Drag and drop your CSVs here",
     "click_text": "or click to select them",
-    "hint": "You can upload multiple address books simultaneously\n(Contacts, Collected Addresses, Personal Address Book, etc.)",
+    "hint": "Create Virtual Groups to better manage your imports.",
     "no_files": "No CSV files selected.",
     "error_format": "\"{{name}}\" does not appear to be a Thunderbird address book CSV",
-    "summary_files_one": "1 address book loaded",
-    "summary_files_other": "{{count}} address books loaded",
-    "summary_contacts": "{{count}} total contacts (pre-dedup)",
-    "remove": "Remove"
+    "summary_files_one": "1 Virtual Group",
+    "summary_files_other": "{{count}} Virtual Groups",
+    "summary_contacts": "{{count}} total contacts",
+    "remove": "Remove",
+    "source_tag": "Enable Source Tagging (Appends Group name to Notes)",
+    "next_btn": "Proceed to Scrubbing"
   },
-  "options": {
-    "title": "Options & Conversion",
-    "dedup_title": "Remove duplicates",
-    "dedup_desc": "Merges contacts with the same email, phone, or name. Data is preserved.",
-    "mapping_title": "Thunderbird → Outlook Mapping",
-    "convert_btn": "Convert {{count}} contacts",
-    "converting": "Converting...",
-    "error": "Error during conversion: {{message}}"
+  "scrubbing": {
+    "title": "Conflict Resolution & Scrubbing",
+    "auto_casing": "Auto-fix Name Casing (JOHN DOE -> John Doe)",
+    "auto_phone": "Format Phone Numbers (+39)",
+    "run_scrub": "Run Scrubbing Utilities",
+    "scrub_success": "Scrubbing completed successfully.",
+    "conflicts_title": "⚠️ Conflicts Detected",
+    "conflicts_desc": "The deduplication engine found matching emails/phones with different data. How should we handle them?",
+    "btn_merge": "Merge Data",
+    "btn_keep": "Keep Both",
+    "resolved_msg": "All conflicts resolved.",
+    "next_btn": "Proceed to Mapping"
+  },
+  "mapping": {
+    "title": "Advanced Schema Mapping",
+    "desc": "Verify the standard mapping and configure custom overrides.",
+    "field_override": "Field Override (Personalizzato 1-4)",
+    "map_to": "Map to:",
+    "next_btn": "Proceed to Preview"
   },
   "result": {
-    "title": "Ready!",
-    "contacts_count": "Contacts",
+    "title": "Live Preview & Export",
+    "contacts_count": "Final Contacts",
     "with_email": "With email",
     "with_phone": "With phone",
     "with_company": "With company",
     "dedup_removed": "Duplicates removed",
-    "preview_title": "Preview (first {{max}} rows)",
-    "preview_more": "+ {{remaining}} more contacts in the file",
-    "download_btn": "Download rubrica_outlook.csv",
-    "download_hint": "Ready for import into Outlook via File → Open & Export → Import/Export",
-    "empty_cell": "—"
+    "preview_title": "Editable Preview (click a cell to edit)",
+    "preview_more": "+ {{remaining}} more contacts",
+    "download_btn": "Export rubrica_outlook.csv",
+    "download_hint": "Ready for import into Outlook",
+    "empty_cell": "—",
+    "health_ok": "Great",
+    "health_warn": "Missing Emails",
+    "health_bad": "Bad format"
   },
   "footer": {
     "claim": "Where IT Infrastructure meets Intelligent Automation",
