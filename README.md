@@ -18,6 +18,10 @@ A professional web utility designed to seamlessly migrate address books from **M
 **GDPR Compliant by Design.** 
 This tool handles potentially sensitive personally identifiable information (PII). To respect strict privacy regulations, the conversion engine operates entirely *offline* within the user's browser runtime. No contact data is ever logged, cached, transmitted, or stored on external servers.
 
+## 🔒 Security & Maintenance
+
+We are fully committed to maintaining an active and secure build chain. Our `package-lock.json` lockfile and core dependencies (such as Vite and its overarching toolchain plugins) are rigorously maintained upwards from `.x` zero-day patches to squash potential security flaws (e.g. nested proxy dependency vulnerabilities like the `esbuild` PR notifications). We maintain isolated Dev dependency chains ensuring your resulting production build is perpetually crisp and highly secure.
+
 ## 🔧 Technical Stack
 
 - **React 18 & Vite**: Lightning fast modern UI stack.
