@@ -175,7 +175,6 @@ export default function App() {
             { n: 4, label: t('header.step4') }
           ].map(s => (
             <div key={s.n} className={`step-node ${currentStep === s.n ? 'active' : ''} ${currentStep > s.n ? 'done' : ''}`} title={s.n < currentStep ? "Step completed" : ""}>
-              {currentStep === s.n && <div className="step-monogram"><span className="char-i">i</span><span className="char-B">B</span><span>_</span></div>}
               <div className="step-marker">{currentStep > s.n ? '✓' : s.n}</div>
               <div className="step-label">{s.label}</div>
             </div>
