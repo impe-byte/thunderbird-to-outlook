@@ -1,0 +1,47 @@
+{
+  "header": {
+    "title": "TB → OL Converter",
+    "subtitle": "Thunderbird · Outlook · Migrazione rubrica",
+    "step1": "Carica",
+    "step2": "Converti",
+    "step3": "Scarica"
+  },
+  "upload": {
+    "title": "Carica file CSV da Thunderbird",
+    "drag_text": "Trascina qui i tuoi CSV",
+    "click_text": "o clicca per selezionarli",
+    "hint": "Puoi caricare più rubriche contemporaneamente\n(Contatti, Indirizzi collezionati, Rubrica personale, ecc.)",
+    "no_files": "Nessun file CSV selezionato.",
+    "error_format": "\"{{name}}\" non sembra un CSV di rubrica Thunderbird",
+    "summary_files_one": "1 rubrica caricata",
+    "summary_files_other": "{{count}} rubriche caricate",
+    "summary_contacts": "{{count}} contatti totali (pre-dedup)",
+    "remove": "Rimuovi"
+  },
+  "options": {
+    "title": "Opzioni e conversione",
+    "dedup_title": "Rimuovi duplicati",
+    "dedup_desc": "Unisce contatti con stessa email, telefono o nome. I dati vengono conservati.",
+    "mapping_title": "Mappa campi Thunderbird → Outlook",
+    "convert_btn": "Converti {{count}} contatti",
+    "converting": "Conversione in corso...",
+    "error": "Errore durante la conversione: {{message}}"
+  },
+  "result": {
+    "title": "Risultato pronto!",
+    "contacts_count": "Contatti",
+    "with_email": "Con email",
+    "with_phone": "Con telefono",
+    "with_company": "Con azienda",
+    "dedup_removed": "Duplicati rimossi",
+    "preview_title": "Anteprima (prime {{max}} righe)",
+    "preview_more": "+ altri {{remaining}} contatti nel file",
+    "download_btn": "Scarica rubrica_outlook.csv",
+    "download_hint": "Pronto per l'importazione in Outlook tramite File → Apri ed esporta → Import/Esport",
+    "empty_cell": "—"
+  },
+  "footer": {
+    "claim": "Where IT Infrastructure meets Intelligent Automation",
+    "privacy": "Elaborazione 100% locale — nessun dato inviato al server"
+  }
+}

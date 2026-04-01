@@ -1,83 +1,67 @@
 # Thunderbird → Outlook Converter
+**Where IT Infrastructure meets Intelligent Automation**
 
-Tool web per migrare rubriche da **Thunderbird** a **Outlook**.
-Converte uno o più CSV esportati da Thunderbird in un singolo CSV pronto per l'importazione in Outlook (formato italiano).
+A professional web utility designed to seamlessly migrate address books from **Mozilla Thunderbird** to **Microsoft Outlook**. It converts one or more CSVs exported from Thunderbird into a unified CSV ready for import into Outlook, automatically adapting column layout maps based on your locale (supporting Italian and US English).
 
-## ✨ Funzionalità
+## ✨ Features
 
-- **Multi-file**: carica più rubriche insieme (Contatti, Indirizzi collezionati, Rubrica personale, ecc.)
-- **Deduplicazione intelligente**: rileva duplicati per email, telefono o nome — unisce i dati senza perdite
-- **Mapping completo**: mappa tutti i campi Thunderbird → Outlook (IT locale)
-- **Anteprima**: mostra le prime righe prima del download
-- **100% locale**: nessun dato inviato al server, elaborazione in-browser
-- **UTF-8 BOM**: output compatibile con Excel/Outlook
+- **Multi-file merging**: Upload multiple address books simultaneously (Contacts, Collected Addresses, Personal Address Book, etc.) and merge them into a single file.
+- **Intelligent Deduplication**: Automatically detects duplicates by email, phone, or name, carefully merging their data without loss.
+- **Dynamic Mapping**: Fully maps Thunderbird fields to correct Outlook headers based on detection of the user’s local language.
+- **Preview Tool**: Shows the first rows generated before downloading.
+- **100% Client-Side Processing**: Designed with privacy in mind, processing happens exclusively in the browser.
+- **Safe Output**: Emits UTF-8 BOM CSV files required for maximum compatibility with Excel and Outlook import wizards.
 
-## 🗺️ Mapping campi
+## 🛡️ Enterprise Compliance
 
-| Thunderbird | Outlook |
-|---|---|
-| Email primaria | Indirizzo posta elettronica |
-| Email secondaria | Indirizzo posta elettronica 2 |
-| Telefono lavoro | Ufficio |
-| Numero cellulare | Cellulare |
-| Telefono casa | Abitazione |
-| Numero fax | Fax (uff.) |
-| Organizzazione | Società |
-| Qualifica | Posizione |
-| Reparto | Reparto |
-| Indirizzo di lavoro / Città / CAP / Provincia / Nazione | Via (uff.) / Città (uff.) / ... |
-| Indirizzo di casa / Città / CAP / Provincia / Nazione | Via (ab.) / Città (ab.) / ... |
-| Pagina web 1 | Pagina Web |
-| Anno/Mese/Giorno nascita | Compleanno |
-| Note + Personalizzato 1-4 | Notes |
-| Nome Instant Messenger | Utente 1 |
+**GDPR Compliant by Design.** 
+This tool handles potentially sensitive personally identifiable information (PII). To respect strict privacy regulations, the conversion engine operates entirely *offline* within the user's browser runtime. No contact data is ever logged, cached, transmitted, or stored on external servers.
 
-## 🚀 Deploy su Vercel
+## 🔧 Technical Stack
+
+- **React 18 & Vite**: Lightning fast modern UI stack.
+- **react-i18next**: Real-time language extraction and translation.
+- **PapaParse**: Secure and robust client-side CSV parsing.
+- **Impe-Byte Architecture**: Clean, minimal and professional design system.
+
+## 🚀 Installation & Local Development
 
 ```bash
-# 1. Clona il repo
-git clone https://github.com/TUO_USERNAME/thunderbird-to-outlook
+# 1. Clone the repository
+git clone https://github.com/impe-byte/thunderbird-to-outlook
 cd thunderbird-to-outlook
 
-# 2. Installa dipendenze
+# 2. Install dependencies
 npm install
 
-# 3. Build
-npm run build
-
-# 4. Deploy su Vercel (prima installa Vercel CLI)
-npx vercel --prod
+# 3. Start development server
+npm run dev
 ```
 
-Oppure connetti il repository su [vercel.com](https://vercel.com) per deploy automatico ad ogni push.
+Open `http://localhost:5173` to view it in your browser.
 
-## 💻 Sviluppo locale
+## 📋 Usage
 
+1. In **Thunderbird**: `Address Book → Tools → Export → Comma Separated Values (.csv)`
+2. Drag & drop one or multiple CSVs into the web tool.
+3. Optional: Toggle the intelligent deduplication feature.
+4. Click **Convert**.
+5. Download the final `rubrica_outlook.csv`.
+6. In **Outlook**: `File → Open & Export → Import/Export → Import from another program or file → Comma Separated Values`
+
+---
+
+### 🇮🇹 Versione Italiana
+
+**Where IT Infrastructure meets Intelligent Automation.** Strumento web professionale per migrare le tue rubriche da Thunderbird a Outlook in totale sicurezza. Il tool legge i tuoi CSV, mappa i campi e genera un file perfetto per l'importazione in Outlook.
+
+**Caratteristiche Principali**:
+- Elaborazione 100% locale: massima privacy, nessun dato inviato ai server.
+- Deduplicazione intelligente per email, nomi o telefoni.
+- Layout grafico e stringhe adattive per CSV Outlook in lingua inglese (US) o italiano (IT).
+
+**Sviluppo Locale**:
 ```bash
 npm install
 npm run dev
 ```
-
-Apri http://localhost:5173
-
-## 📦 Build
-
-```bash
-npm run build
-# Output in /dist — pronto per deploy statico
-```
-
-## 📋 Come usare
-
-1. In **Thunderbird**: `Rubrica → Strumenti → Esporta → Valori separati da virgola (.csv)`
-2. Carica uno o più CSV nel tool
-3. Opzionale: abilita la deduplicazione
-4. Clicca **Converti**
-5. Scarica `rubrica_outlook.csv`
-6. In **Outlook**: `File → Apri ed esporta → Importa/Esporta → Importa da un altro programma o file → Valori separati da virgola`
-
-## 🔧 Stack
-
-- React 18 + Vite
-- PapaParse (parsing CSV)
-- Deploy: Vercel (static)

@@ -1,22 +1,24 @@
 import { useState, useCallback, useRef } from 'react';
+import { useTranslation } from 'react-i18next';
 import Papa from 'papaparse';
 import {
   isThunderbirdFormat, mapThunderbirdToOutlook,
-  deduplicateContacts, toCSV, getStats, OUTLOOK_COLUMNS
+  deduplicateContacts, toCSV, getStats, getOutlookColumns
 } from './converter.js';
 
 const MAX_PREVIEW = 8;
 
 function FileTag({ name, count, onRemove }) {
+  const { t } = useTranslation();
   return (
     <div className="file-tag">
       <div className="file-tag-inner">
         <span className="file-icon">📋</span>
         <div className="file-info">
           <span className="file-name">{name}</span>
-          <span className="file-count">{count} contatti</span>
+          <span className="file-count">{count} {t('result.contacts_count').toLowerCase()}</span>
         </div>
-        <button className="remove-btn" onClick={onRemove} title="Rimuovi">✕</button>
+        <button className="remove-btn" onClick={onRemove} title={t('upload.remove')}>✕</button>
       </div>
     </div>
   );
@@ -31,8 +33,9 @@ function StepBadge({ n, active, done }) {
 }
 
 export default function App() {
-  const [files, setFiles] = useState([]);   // [{name, rows, stats, tag}]
-  const [result, setResult] = useState(null); // {contacts, stats, dedupStats}
+  const { t, i18n } = useTranslation();
+  const [files, setFiles] = useState([]);
+  const [result, setResult] = useState(null);
   const [dragging, setDragging] = useState(false);
   const [error, setError] = useState('');
   const [dedup, setDedup] = useState(true);
@@ -41,19 +44,23 @@ export default function App() {
 
   const step = files.length === 0 ? 1 : result ? 3 : 2;
 
+  const toggleLanguage = () => {
+    const newLang = i18n.language.startsWith('it') ? 'en' : 'it';
+    i18n.changeLanguage(newLang);
+    setResult(null); // Clear results on lang change because columns differ
+  };
+
   function parseFile(file) {
     return new Promise((resolve, reject) => {
       const reader = new FileReader();
       reader.onload = (e) => {
         let text = e.target.result;
-        // Try UTF-8 first, fall back to latin-1
         Papa.parse(text, {
           header: true,
           skipEmptyLines: true,
           encoding: 'UTF-8',
           complete: (res) => {
             if (res.data.length === 0 || !isThunderbirdFormat(res.meta.fields || [])) {
-              // Try latin-1
               const reader2 = new FileReader();
               reader2.onload = (e2) => {
                 Papa.parse(e2.target.result, {
@@ -61,7 +68,7 @@ export default function App() {
                   skipEmptyLines: true,
                   complete: (res2) => {
                     if (!isThunderbirdFormat(res2.meta.fields || [])) {
-                      reject(new Error(`"${file.name}" non sembra un CSV di rubrica Thunderbird`));
+                      reject(new Error(t('upload.error_format', { name: file.name })));
                     } else {
                       resolve({ name: file.name, rows: res2.data, fields: res2.meta.fields });
                     }
@@ -83,21 +90,19 @@ export default function App() {
 
   const handleFiles = useCallback(async (fileList) => {
     setError('');
-    const csvFiles = Array.from(fileList).filter(f =>
-      f.name.toLowerCase().endsWith('.csv')
-    );
+    const csvFiles = Array.from(fileList).filter(f => f.name.toLowerCase().endsWith('.csv'));
     if (csvFiles.length === 0) {
-      setError('Nessun file CSV selezionato.');
+      setError(t('upload.no_files'));
       return;
     }
 
     const parsed = [];
+    const currentLang = i18n.language;
     for (const f of csvFiles) {
-      // Skip if already loaded
       if (files.find(x => x.name === f.name)) continue;
       try {
         const data = await parseFile(f);
-        const stats = getStats(data.rows);
+        const stats = getStats(data.rows, currentLang);
         parsed.push({ name: data.name, rows: data.rows, stats, tag: data.name.replace(/\.csv$/i, '') });
       } catch (err) {
         setError(err.message);
@@ -107,7 +112,7 @@ export default function App() {
 
     setFiles(prev => [...prev, ...parsed]);
     setResult(null);
-  }, [files]);
+  }, [files, i18n.language, t]);
 
   const handleDrop = useCallback((e) => {
     e.preventDefault();
@@ -122,26 +127,27 @@ export default function App() {
 
   function convert() {
     setProcessing(true);
+    const lang = i18n.language;
     setTimeout(() => {
       try {
         let allContacts = [];
         files.forEach(f => {
-          const mapped = f.rows.map(row => mapThunderbirdToOutlook(row, f.tag));
+          const mapped = f.rows.map(row => mapThunderbirdToOutlook(row, f.tag, lang));
           allContacts = allContacts.concat(mapped);
         });
 
         const beforeDedup = allContacts.length;
-        const contacts = dedup ? deduplicateContacts(allContacts) : allContacts;
+        const contacts = dedup ? deduplicateContacts(allContacts, lang) : allContacts;
         const afterDedup = contacts.length;
 
         setResult({
           contacts,
-          stats: getStats(contacts),
+          stats: getStats(contacts, lang),
           dedupRemoved: dedup ? beforeDedup - afterDedup : 0,
-          csv: toCSV(contacts)
+          csv: toCSV(contacts, lang)
         });
       } catch (err) {
-        setError('Errore durante la conversione: ' + err.message);
+        setError(t('options.error', { message: err.message }));
       }
       setProcessing(false);
     }, 50);
@@ -160,23 +166,24 @@ export default function App() {
 
   const totalInput = files.reduce((s, f) => s + f.rows.length, 0);
 
+  const isIt = i18n.language.startsWith('it');
+
   return (
     <div className="app">
-      {/* Header */}
       <header className="header">
         <div className="header-inner">
           <div className="logo">
-            <span className="logo-bird">🦅</span>
+            <div className="logo-monogram">iB<span>_</span></div>
             <div>
-              <div className="logo-title">TB → OL Converter</div>
-              <div className="logo-sub">Thunderbird · Outlook · Migrazione rubrica</div>
+              <div className="logo-title">{t('header.title')}</div>
+              <div className="logo-sub">{t('header.subtitle')}</div>
             </div>
           </div>
           <div className="steps-row">
             {[
-              { n: 1, label: 'Carica file' },
-              { n: 2, label: 'Converti' },
-              { n: 3, label: 'Scarica' },
+              { n: 1, label: t('header.step1') },
+              { n: 2, label: t('header.step2') },
+              { n: 3, label: t('header.step3') },
             ].map(s => (
               <div key={s.n} className="step-item">
                 <StepBadge n={s.n} active={step === s.n} done={step > s.n} />
@@ -192,7 +199,7 @@ export default function App() {
         <section className="section">
           <div className="section-header">
             <StepBadge n={1} active={step === 1} done={step > 1} />
-            <h2>Carica file CSV da Thunderbird</h2>
+            <h2>{t('upload.title')}</h2>
           </div>
 
           <div
@@ -214,12 +221,13 @@ export default function App() {
             <div className="drop-content">
               <div className="drop-icon">{dragging ? '📂' : '📁'}</div>
               <div className="drop-text">
-                <strong>Trascina qui i tuoi CSV</strong><br />
-                <span>o clicca per selezionarli</span>
+                {t('upload.drag_text')}<br />
+                <span>{t('upload.click_text')}</span>
               </div>
               <div className="drop-hint">
-                Puoi caricare più rubriche contemporaneamente<br/>
-                (Contatti, Indirizzi collezionati, Rubrica personale, ecc.)
+                {t('upload.hint').split('\n').map((line, idx) => (
+                  <div key={idx}>{line}</div>
+                ))}
               </div>
             </div>
           </div>
@@ -242,9 +250,11 @@ export default function App() {
           {files.length > 0 && (
             <div className="input-summary">
               <span>📊</span>
-              <span><strong>{files.length}</strong> rubrica{files.length > 1 ? 'i' : ''} caricate</span>
+              <span>
+                <strong>{files.length}</strong> {files.length === 1 ? t('upload.summary_files_one') : t('upload.summary_files_other', { count: '' }).trim()}
+              </span>
               <span className="sep">·</span>
-              <span><strong>{totalInput}</strong> contatti totali (pre-dedup)</span>
+              <span><strong>{totalInput}</strong> {t('upload.summary_contacts', { count: '' }).trim()}</span>
             </div>
           )}
         </section>
@@ -254,7 +264,7 @@ export default function App() {
           <section className="section">
             <div className="section-header">
               <StepBadge n={2} active={step === 2} done={step > 2} />
-              <h2>Opzioni e conversione</h2>
+              <h2>{t('options.title')}</h2>
             </div>
 
             <div className="options-row">
@@ -263,32 +273,32 @@ export default function App() {
                   <div className="toggle-knob" />
                 </div>
                 <div>
-                  <div className="opt-title">Rimuovi duplicati</div>
-                  <div className="opt-desc">Unisce contatti con stessa email, telefono o nome. I dati vengono conservati.</div>
+                  <div className="opt-title">{t('options.dedup_title')}</div>
+                  <div className="opt-desc">{t('options.dedup_desc')}</div>
                 </div>
               </label>
             </div>
 
             <div className="mapping-preview">
-              <div className="mapping-title">📋 Mappa campi Thunderbird → Outlook</div>
+              <div className="mapping-title">📋 {t('options.mapping_title')}</div>
               <div className="mapping-grid">
                 {[
-                  ['Email primaria', 'Indirizzo posta elettronica'],
-                  ['Email secondaria', 'Indirizzo posta elettronica 2'],
-                  ['Telefono lavoro', 'Ufficio'],
-                  ['Numero cellulare', 'Cellulare'],
-                  ['Telefono casa', 'Abitazione'],
-                  ['Numero fax', 'Fax (uff.)'],
-                  ['Organizzazione', 'Società'],
-                  ['Qualifica', 'Posizione'],
-                  ['Indirizzo di lavoro', 'Via (uff.)'],
-                  ['Città di lavoro', 'Città (uff.)'],
-                  ['Indirizzo di casa', 'Via (ab.)'],
-                  ['Città di residenza', 'Città (ab.)'],
-                  ['Pagina web 1', 'Pagina Web'],
+                  ['Email primaria', isIt ? 'Indirizzo posta elettronica' : 'E-mail Address'],
+                  ['Email secondaria', isIt ? 'Indirizzo posta elettronica 2' : 'E-mail 2 Address'],
+                  ['Telefono lavoro', isIt ? 'Ufficio' : 'Business Phone'],
+                  ['Numero cellulare', isIt ? 'Cellulare' : 'Mobile Phone'],
+                  ['Telefono casa', isIt ? 'Abitazione' : 'Home Phone'],
+                  ['Numero fax', isIt ? 'Fax (uff.)' : 'Business Fax'],
+                  ['Organizzazione', isIt ? 'Società' : 'Company'],
+                  ['Qualifica', isIt ? 'Posizione' : 'Job Title'],
+                  ['Indirizzo di lavoro', isIt ? 'Via (uff.)' : 'Business Street'],
+                  ['Città di lavoro', isIt ? 'Città (uff.)' : 'Business City'],
+                  ['Indirizzo di casa', isIt ? 'Via (ab.)' : 'Home Street'],
+                  ['Città di residenza', isIt ? 'Città (ab.)' : 'Home City'],
+                  ['Pagina web 1', isIt ? 'Pagina Web' : 'Web Page'],
                   ['Note', 'Notes'],
-                  ['Anno/Mese/Giorno nascita', 'Compleanno'],
-                  ['Personalizzato 1-4', 'Notes (append)'],
+                  ['Anno/Mese/Giorno nascita', isIt ? 'Compleanno' : 'Birthday'],
+                  ['Personalizzato 1-4', isIt ? 'Notes (append)' : 'Notes (append)'],
                 ].map(([from, to]) => (
                   <div key={from} className="mapping-row">
                     <span className="map-from">{from}</span>
@@ -305,9 +315,9 @@ export default function App() {
               disabled={processing}
             >
               {processing ? (
-                <><span className="spinner" />Conversione in corso...</>
+                <><span className="spinner" />{t('options.converting')}</>
               ) : (
-                <>⚡ Converti {totalInput} contatti</>
+                <>⚡ {t('options.convert_btn', { count: totalInput })}</>
               )}
             </button>
           </section>
@@ -318,42 +328,45 @@ export default function App() {
           <section className="section result-section">
             <div className="section-header">
               <StepBadge n={3} active done />
-              <h2>Risultato pronto!</h2>
+              <h2>{t('result.title')}</h2>
             </div>
 
             <div className="stats-grid">
               <div className="stat-card accent">
                 <div className="stat-num">{result.contacts.length}</div>
-                <div className="stat-label">Contatti nel file</div>
+                <div className="stat-label">{t('result.contacts_count')}</div>
               </div>
               <div className="stat-card">
                 <div className="stat-num">{result.stats.withEmail}</div>
-                <div className="stat-label">Con email</div>
+                <div className="stat-label">{t('result.with_email')}</div>
               </div>
               <div className="stat-card">
                 <div className="stat-num">{result.stats.withPhone}</div>
-                <div className="stat-label">Con telefono</div>
+                <div className="stat-label">{t('result.with_phone')}</div>
               </div>
               <div className="stat-card">
                 <div className="stat-num">{result.stats.withCompany}</div>
-                <div className="stat-label">Con azienda</div>
+                <div className="stat-label">{t('result.with_company')}</div>
               </div>
               {result.dedupRemoved > 0 && (
                 <div className="stat-card success">
                   <div className="stat-num">-{result.dedupRemoved}</div>
-                  <div className="stat-label">Duplicati rimossi</div>
+                  <div className="stat-label">{t('result.dedup_removed')}</div>
                 </div>
               )}
             </div>
 
             {/* Preview table */}
             <div className="preview-wrap">
-              <div className="preview-title">Anteprima (prime {MAX_PREVIEW} righe)</div>
+              <div className="preview-title">{t('result.preview_title', { max: MAX_PREVIEW })}</div>
               <div className="table-scroll">
                 <table className="preview-table">
                   <thead>
                     <tr>
-                      {['Nome', 'Cognome', 'Società', 'Indirizzo posta elettronica', 'Cellulare', 'Ufficio'].map(h => (
+                      {(isIt 
+                        ? ['Nome', 'Cognome', 'Società', 'Indirizzo posta elettronica', 'Cellulare', 'Ufficio']
+                        : ['First Name', 'Last Name', 'Company', 'E-mail Address', 'Mobile Phone', 'Business Phone']
+                      ).map(h => (
                         <th key={h}>{h}</th>
                       ))}
                     </tr>
@@ -361,8 +374,11 @@ export default function App() {
                   <tbody>
                     {result.contacts.slice(0, MAX_PREVIEW).map((c, i) => (
                       <tr key={i}>
-                        {['Nome', 'Cognome', 'Società', 'Indirizzo posta elettronica', 'Cellulare', 'Ufficio'].map(col => (
-                          <td key={col}>{c[col] || <span className="empty">—</span>}</td>
+                        {(isIt 
+                          ? ['Nome', 'Cognome', 'Società', 'Indirizzo posta elettronica', 'Cellulare', 'Ufficio']
+                          : ['First Name', 'Last Name', 'Company', 'E-mail Address', 'Mobile Phone', 'Business Phone']
+                        ).map(col => (
+                          <td key={col}>{c[col] || <span className="empty">{t('result.empty_cell')}</span>}</td>
                         ))}
                       </tr>
                     ))}
@@ -371,17 +387,17 @@ export default function App() {
               </div>
               {result.contacts.length > MAX_PREVIEW && (
                 <div className="preview-more">
-                  + altri {result.contacts.length - MAX_PREVIEW} contatti nel file
+                  {t('result.preview_more', { remaining: result.contacts.length - MAX_PREVIEW })}
                 </div>
               )}
             </div>
 
             <div className="download-row">
               <button className="download-btn" onClick={download}>
-                ⬇️ Scarica rubrica_outlook.csv
+                ⬇️ {t('result.download_btn')}
               </button>
               <div className="download-hint">
-                Pronto per l'importazione in Outlook tramite File → Apri ed esporta → Importa/Esporta
+                {t('result.download_hint')}
               </div>
             </div>
           </section>
@@ -389,9 +405,15 @@ export default function App() {
       </main>
 
       <footer className="footer">
-        <span>Thunderbird → Outlook Converter</span>
-        <span className="sep">·</span>
-        <span>Elaborazione 100% locale — nessun dato inviato al server</span>
+        <div className="footer-left">
+          <span className="footer-claim">{t('footer.claim')}</span>
+          <br/>
+          <span>{t('footer.privacy')}</span>
+        </div>
+        <div className="lang-switcher">
+          <button className={`lang-btn ${isIt ? 'active' : ''}`} onClick={() => i18n.changeLanguage('it')}>IT</button>
+          <button className={`lang-btn ${!isIt ? 'active' : ''}`} onClick={() => i18n.changeLanguage('en')}>EN</button>
+        </div>
       </footer>
     </div>
   );

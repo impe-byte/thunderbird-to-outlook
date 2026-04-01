@@ -1,10 +1,9 @@
 /**
  * Thunderbird → Outlook CSV Converter
- * Maps Thunderbird address book fields to Outlook import format (Italian locale)
+ * Handles both Italian and US English mapping dynamically based on locale.
  */
 
-// Complete Outlook Italian column set
-export const OUTLOOK_COLUMNS = [
+export const OUTLOOK_COLUMNS_IT = [
   'Titolo', 'Nome', 'Secondo nome', 'Cognome', 'Titolo straniero',
   'Società', 'Reparto', 'Posizione',
   'Via (uff.)', 'Via (uff.) 2', 'Via (uff.) 3', 'Città (uff.)', 'Provincia (uff.)', 'CAP (uff.)', 'Paese/area geografica (uff.)',
@@ -28,22 +27,39 @@ export const OUTLOOK_COLUMNS = [
   'Utente 1', 'Utente 2', 'Utente 3', 'Utente 4'
 ];
 
-/**
- * Detect if a CSV is Thunderbird format by checking column names
- */
+export const OUTLOOK_COLUMNS_EN = [
+  'Title', 'First Name', 'Middle Name', 'Last Name', 'Suffix',
+  'Company', 'Department', 'Job Title',
+  'Business Street', 'Business Street 2', 'Business Street 3', 'Business City', 'Business State', 'Business Postal Code', 'Business Country/Region',
+  'Home Street', 'Home Street 2', 'Home Street 3', 'Home City', 'Home State', 'Home Postal Code', 'Home Country/Region',
+  'Other Street', 'Other Street 2', 'Other Street 3', 'Other City', 'Other State', 'Other Postal Code', 'Other Country/Region',
+  'Assistant\'s Phone', 'Business Fax', 'Business Phone', 'Business Phone 2', 'Callback',
+  'Car Phone', 'Company Main Phone', 'Home Fax', 'Home Phone', 'Home Phone 2',
+  'ISDN', 'Mobile Phone', 'Other Fax', 'Other Phone', 'Pager',
+  'Primary Phone', 'Radio Phone', 'TTY/TDD Phone', 'Telex',
+  'Account', 'Anniversary', 'Assistant\'s Name', 'Billing Information', 'Birthday',
+  'Business Address PO Box', 'Categories', 'Children', 'Directory Server', 'E-mail Address',
+  'E-mail Type', 'E-mail Display Name', 'E-mail 2 Address', 'E-mail 2 Type', 'E-mail 2 Display Name',
+  'E-mail 3 Address', 'E-mail 3 Type', 'E-mail 3 Display Name', 'Gender', 'Government ID Number',
+  'Hobby', 'Home Address PO Box', 'Initials', 'Internet Free Busy', 'Keywords',
+  'Language', 'Location', 'Manager\'s Name', 'Mileage', 'Notes', 'Office Location',
+  'Organizational ID Number', 'Other Address PO Box', 'Priority', 'Private', 'Profession',
+  'Referred By', 'Sensitivity', 'Spouse', 'User 1', 'User 2', 'User 3', 'User 4', 'Web Page'
+];
+
+export function getOutlookColumns(lang) {
+  return lang && lang.startsWith('it') ? OUTLOOK_COLUMNS_IT : OUTLOOK_COLUMNS_EN;
+}
+
 export function isThunderbirdFormat(columns) {
   const tbCols = ['Email primaria', 'Nome visualizzato', 'Soprannome', 'Email secondaria'];
   return tbCols.some(col => columns.includes(col));
 }
 
-/**
- * Build a display name from available name parts
- */
 function buildDisplayName(row) {
   const nome = (row['Nome'] || '').trim();
   const cognome = (row['Cognome'] || '').trim();
   const nomeVisualizzato = (row['Nome visualizzato'] || '').trim();
-
   if (nome && cognome) return `${nome} ${cognome}`;
   if (nome) return nome;
   if (cognome) return cognome;
@@ -51,9 +67,6 @@ function buildDisplayName(row) {
   return row['Email primaria'] || '';
 }
 
-/**
- * Build birthday string from Thunderbird year/month/day fields
- */
 function buildBirthday(row) {
   const y = row['Anno di nascita'];
   const m = row['Mese di nascita'];
@@ -64,9 +77,6 @@ function buildBirthday(row) {
   return '';
 }
 
-/**
- * Build initials from name
- */
 function buildInitials(nome, cognome) {
   const n = (nome || '').trim();
   const c = (cognome || '').trim();
@@ -76,10 +86,8 @@ function buildInitials(nome, cognome) {
   return '';
 }
 
-/**
- * Map a single Thunderbird row to Outlook format
- */
-export function mapThunderbirdToOutlook(row, sourceTag = '') {
+export function mapThunderbirdToOutlook(row, sourceTag = '', lang = 'en') {
+  const isIt = lang.startsWith('it');
   const nome = (row['Nome'] || '').trim();
   const cognome = (row['Cognome'] || '').trim();
   const displayName = buildDisplayName(row);
@@ -87,115 +95,149 @@ export function mapThunderbirdToOutlook(row, sourceTag = '') {
   const email2 = (row['Email secondaria'] || '').trim();
 
   const out = {};
-  OUTLOOK_COLUMNS.forEach(col => out[col] = '');
+  const columns = getOutlookColumns(lang);
+  columns.forEach(col => out[col] = '');
 
-  // Identity
-  out['Nome'] = nome;
-  out['Cognome'] = cognome;
-  out['Iniziali'] = buildInitials(nome, cognome);
+  const keys = {
+    nome: isIt ? 'Nome' : 'First Name',
+    cognome: isIt ? 'Cognome' : 'Last Name',
+    iniziali: isIt ? 'Iniziali' : 'Initials',
+    societa: isIt ? 'Società' : 'Company',
+    reparto: isIt ? 'Reparto' : 'Department',
+    posizione: isIt ? 'Posizione' : 'Job Title',
+    viaUff: isIt ? 'Via (uff.)' : 'Business Street',
+    viaUff2: isIt ? 'Via (uff.) 2' : 'Business Street 2',
+    cittaUff: isIt ? 'Città (uff.)' : 'Business City',
+    provUff: isIt ? 'Provincia (uff.)' : 'Business State',
+    capUff: isIt ? 'CAP (uff.)' : 'Business Postal Code',
+    paeseUff: isIt ? 'Paese/area geografica (uff.)' : 'Business Country/Region',
+    viaAb: isIt ? 'Via (ab.)' : 'Home Street',
+    viaAb2: isIt ? 'Via (ab.) 2' : 'Home Street 2',
+    cittaAb: isIt ? 'Città (ab.)' : 'Home City',
+    provAb: isIt ? 'Provincia (ab.)' : 'Home State',
+    capAb: isIt ? 'CAP (ab.)' : 'Home Postal Code',
+    paeseAb: isIt ? 'Paese/area geografica (ab.)' : 'Home Country/Region',
+    ufficio: isIt ? 'Ufficio' : 'Business Phone',
+    abitazione: isIt ? 'Abitazione' : 'Home Phone',
+    faxUff: isIt ? 'Fax (uff.)' : 'Business Fax',
+    cellulare: isIt ? 'Cellulare' : 'Mobile Phone',
+    cercapersone: isIt ? 'Cercapersone' : 'Pager',
+    email1: isIt ? 'Indirizzo posta elettronica' : 'E-mail Address',
+    email1Type: isIt ? 'Tipo posta elettronica' : 'E-mail Type',
+    email1Disp: isIt ? 'Nome visualizzato posta elettronica' : 'E-mail Display Name',
+    email2: isIt ? 'Indirizzo posta elettronica 2' : 'E-mail 2 Address',
+    email2Type: isIt ? 'Tipo posta elettronica 2' : 'E-mail 2 Type',
+    email2Disp: isIt ? 'Nome visualizzato posta elettronica 2' : 'E-mail 2 Display Name',
+    web: isIt ? 'Pagina Web' : 'Web Page',
+    compleanno: isIt ? 'Compleanno' : 'Birthday',
+    notes: isIt ? 'Notes' : 'Notes',
+    utente1: isIt ? 'Utente 1' : 'User 1',
+    priorita: isIt ? 'Priorità' : 'Priority',
+    privato: isIt ? 'Privato' : 'Private',
+    riservatezza: isIt ? 'Riservatezza' : 'Sensitivity',
+    sesso: isIt ? 'Sesso' : 'Gender',
+    anniversario: isIt ? 'Anniversario' : 'Anniversary'
+  };
 
-  // Organization
-  out['Società'] = (row['Organizzazione'] || '').trim();
-  out['Reparto'] = (row['Reparto'] || '').trim();
-  out['Posizione'] = (row['Qualifica'] || '').trim();
+  out[keys.nome] = nome;
+  out[keys.cognome] = cognome;
+  out[keys.iniziali] = buildInitials(nome, cognome);
 
-  // Work address
-  out['Via (uff.)'] = (row['Indirizzo di lavoro'] || '').trim();
-  out['Via (uff.) 2'] = (row['Indirizzo di lavoro 2'] || '').trim();
-  out['Città (uff.)'] = (row['Città di lavoro'] || '').trim();
-  out['Provincia (uff.)'] = (row['Provincia di lavoro'] || '').trim();
-  out['CAP (uff.)'] = (row['CAP di lavoro'] || '').trim();
-  out['Paese/area geografica (uff.)'] = (row['Nazione di lavoro'] || '').trim();
+  out[keys.societa] = (row['Organizzazione'] || '').trim();
+  out[keys.reparto] = (row['Reparto'] || '').trim();
+  out[keys.posizione] = (row['Qualifica'] || '').trim();
 
-  // Home address
-  out['Via (ab.)'] = (row['Indirizzo di casa'] || '').trim();
-  out['Via (ab.) 2'] = (row['Indirizzo di casa 2'] || '').trim();
-  out['Città (ab.)'] = (row['Città di residenza'] || '').trim();
-  out['Provincia (ab.)'] = (row['Provincia di residenza'] || '').trim();
-  out['CAP (ab.)'] = (row['CAP di residenza'] || '').trim();
-  out['Paese/area geografica (ab.)'] = (row['Nazione di residenza'] || '').trim();
+  out[keys.viaUff] = (row['Indirizzo di lavoro'] || '').trim();
+  out[keys.viaUff2] = (row['Indirizzo di lavoro 2'] || '').trim();
+  out[keys.cittaUff] = (row['Città di lavoro'] || '').trim();
+  out[keys.provUff] = (row['Provincia di lavoro'] || '').trim();
+  out[keys.capUff] = (row['CAP di lavoro'] || '').trim();
+  out[keys.paeseUff] = (row['Nazione di lavoro'] || '').trim();
 
-  // Phones
-  out['Ufficio'] = (row['Telefono lavoro'] || '').trim();
-  out['Abitazione'] = (row['Telefono casa'] || '').trim();
-  out['Fax (uff.)'] = (row['Numero fax'] || '').trim();
-  out['Cellulare'] = (row['Numero cellulare'] || '').trim();
-  out['Cercapersone'] = (row['Numero cercapersone'] || '').trim();
+  out[keys.viaAb] = (row['Indirizzo di casa'] || '').trim();
+  out[keys.viaAb2] = (row['Indirizzo di casa 2'] || '').trim();
+  out[keys.cittaAb] = (row['Città di residenza'] || '').trim();
+  out[keys.provAb] = (row['Provincia di residenza'] || '').trim();
+  out[keys.capAb] = (row['CAP di residenza'] || '').trim();
+  out[keys.paeseAb] = (row['Nazione di residenza'] || '').trim();
 
-  // Email 1
-  out['Indirizzo posta elettronica'] = email1;
-  out['Tipo posta elettronica'] = email1 ? 'SMTP' : '';
-  out['Nome visualizzato posta elettronica'] = email1 ? `${displayName} (${email1})` : '';
+  out[keys.ufficio] = (row['Telefono lavoro'] || '').trim();
+  out[keys.abitazione] = (row['Telefono casa'] || '').trim();
+  out[keys.faxUff] = (row['Numero fax'] || '').trim();
+  out[keys.cellulare] = (row['Numero cellulare'] || '').trim();
+  out[keys.cercapersone] = (row['Numero cercapersone'] || '').trim();
 
-  // Email 2
-  out['Indirizzo posta elettronica 2'] = email2;
-  out['Tipo posta elettronica 2'] = email2 ? 'SMTP' : '';
-  out['Nome visualizzato posta elettronica 2'] = email2 ? `${displayName} (${email2})` : '';
+  out[keys.email1] = email1;
+  out[keys.email1Type] = email1 ? 'SMTP' : '';
+  out[keys.email1Disp] = email1 ? `${displayName} (${email1})` : '';
 
-  // Web
-  out['Pagina Web'] = (row['Pagina web 1'] || row['Pagina web 2'] || '').trim();
+  out[keys.email2] = email2;
+  out[keys.email2Type] = email2 ? 'SMTP' : '';
+  out[keys.email2Disp] = email2 ? `${displayName} (${email2})` : '';
 
-  // Birthday
-  out['Compleanno'] = buildBirthday(row);
+  out[keys.web] = (row['Pagina web 1'] || row['Pagina web 2'] || '').trim();
+  out[keys.compleanno] = buildBirthday(row);
 
-  // Notes — merge Thunderbird notes + custom fields + source tag
   const notes = [];
   if (row['Note']) notes.push(row['Note'].trim());
   if (row['Personalizzato 1']) notes.push(`Personalizzato 1: ${row['Personalizzato 1']}`);
   if (row['Personalizzato 2']) notes.push(`Personalizzato 2: ${row['Personalizzato 2']}`);
   if (row['Personalizzato 3']) notes.push(`Personalizzato 3: ${row['Personalizzato 3']}`);
   if (row['Personalizzato 4']) notes.push(`Personalizzato 4: ${row['Personalizzato 4']}`);
-  if (sourceTag) notes.push(`[Fonte: ${sourceTag}]`);
-  out['Notes'] = notes.join('\n');
+  if (sourceTag) notes.push(`[Source: ${sourceTag}]`);
+  out[keys.notes] = notes.join('\n');
 
-  // Messenger
-  out['Utente 1'] = (row['Nome Instant Messenger'] || '').trim();
+  out[keys.utente1] = (row['Nome Instant Messenger'] || '').trim();
 
-  // Defaults
-  out['Priorità'] = 'Normale';
-  out['Privato'] = 'Falso';
-  out['Riservatezza'] = 'Normale';
-  out['Sesso'] = 'Non specificato';
-  out['Anniversario'] = '0/0/00';
+  out[keys.priorita] = isIt ? 'Normale' : 'Normal';
+  out[keys.privato] = isIt ? 'Falso' : 'False';
+  out[keys.riservatezza] = isIt ? 'Normale' : 'Normal';
+  out[keys.sesso] = isIt ? 'Non specificato' : 'Unspecified';
+  out[keys.anniversario] = '0/0/00';
 
   return out;
 }
 
-/**
- * Deduplicate contacts. Priority: email > phone > display name
- * Merges data from duplicates (fills empty fields)
- */
-export function deduplicateContacts(contacts) {
-  const emailMap = new Map();   // email → index
-  const phoneMap = new Map();   // normalizedPhone → index
-  const nameMap = new Map();    // displayName → index
+export function deduplicateContacts(contacts, lang = 'en') {
+  const isIt = lang.startsWith('it');
+  const emailCol = isIt ? 'Indirizzo posta elettronica' : 'E-mail Address';
+  const email2Col = isIt ? 'Indirizzo posta elettronica 2' : 'E-mail 2 Address';
+  const cellCol = isIt ? 'Cellulare' : 'Mobile Phone';
+  const uffCol = isIt ? 'Ufficio' : 'Business Phone';
+  const abCol = isIt ? 'Abitazione' : 'Home Phone';
+  const nomeCol = isIt ? 'Nome' : 'First Name';
+  const cognomeCol = isIt ? 'Cognome' : 'Last Name';
+  const noteCol = isIt ? 'Notes' : 'Notes';
+  
+  const emailMap = new Map();
+  const phoneMap = new Map();
+  const nameMap = new Map();
   const result = [];
+  const columns = getOutlookColumns(lang);
 
   function normalizePhone(p) {
     return (p || '').replace(/\D/g, '').replace(/^0039/, '39').replace(/^00/, '');
   }
 
   function mergeInto(target, source) {
-    OUTLOOK_COLUMNS.forEach(col => {
+    columns.forEach(col => {
       if (!target[col] && source[col]) target[col] = source[col];
     });
-    // Merge notes
-    if (source['Notes'] && target['Notes'] !== source['Notes']) {
-      const existing = target['Notes'] || '';
-      const incoming = source['Notes'] || '';
+    if (source[noteCol] && target[noteCol] !== source[noteCol]) {
+      const existing = target[noteCol] || '';
+      const incoming = source[noteCol] || '';
       const combined = [...new Set([...existing.split('\n'), ...incoming.split('\n')])].filter(Boolean);
-      target['Notes'] = combined.join('\n');
+      target[noteCol] = combined.join('\n');
     }
   }
 
   contacts.forEach(contact => {
-    const email = (contact['Indirizzo posta elettronica'] || '').toLowerCase().trim();
-    const email2 = (contact['Indirizzo posta elettronica 2'] || '').toLowerCase().trim();
-    const phone = normalizePhone(contact['Cellulare'] || contact['Ufficio'] || contact['Abitazione']);
-    const displayName = `${contact['Nome']} ${contact['Cognome']}`.trim().toLowerCase();
+    const email = (contact[emailCol] || '').toLowerCase().trim();
+    const email2 = (contact[email2Col] || '').toLowerCase().trim();
+    const phone = normalizePhone(contact[cellCol] || contact[uffCol] || contact[abCol]);
+    const displayName = `${contact[nomeCol]} ${contact[cognomeCol]}`.trim().toLowerCase();
 
     let existingIdx = -1;
-
     if (email && emailMap.has(email)) existingIdx = emailMap.get(email);
     else if (email2 && emailMap.has(email2)) existingIdx = emailMap.get(email2);
     else if (phone && phone.length >= 8 && phoneMap.has(phone)) existingIdx = phoneMap.get(phone);
@@ -216,39 +258,33 @@ export function deduplicateContacts(contacts) {
   return result;
 }
 
-/**
- * Convert array of Outlook objects to CSV string (UTF-8 BOM for Excel compatibility)
- */
-export function toCSV(contacts) {
-  const header = OUTLOOK_COLUMNS.join(',');
+export function toCSV(contacts, lang = 'en') {
+  if (contacts.length === 0) return '';
+  const columns = getOutlookColumns(lang);
+  const header = columns.join(',');
   const rows = contacts.map(c => {
-    return OUTLOOK_COLUMNS.map(col => {
-      const val = (c[col] || '').toString().replace(/"/g, '""');
+    return columns.map(col => {
+      let val = (c[col] || '');
+      // Ensure val is treated as string since numeric could throw error on .includes
+      val = String(val).replace(/"/g, '""');
       return val.includes(',') || val.includes('"') || val.includes('\n') ? `"${val}"` : val;
     }).join(',');
   });
   return '\uFEFF' + [header, ...rows].join('\r\n');
 }
 
-/**
- * Parse CSV text auto-detecting encoding issues (latin-1 decoded as utf-8)
- */
-export function parseCSV(text) {
-  // PapaParse handles the parsing
-  return text;
-}
+export function getStats(contacts, lang = 'en') {
+  const isIt = lang.startsWith('it');
+  const emailCol = isIt ? 'Indirizzo posta elettronica' : 'E-mail Address';
+  const cellCol = isIt ? 'Cellulare' : 'Mobile Phone';
+  const uffCol = isIt ? 'Ufficio' : 'Business Phone';
+  const abCol = isIt ? 'Abitazione' : 'Home Phone';
+  const dittaCol = isIt ? 'Società' : 'Company';
 
-/**
- * Get stats about a set of contacts
- */
-export function getStats(contacts) {
   return {
     total: contacts.length,
-    withEmail: contacts.filter(c => c['Indirizzo posta elettronica'] || c['Email primaria']).length,
-    withPhone: contacts.filter(c =>
-      c['Cellulare'] || c['Ufficio'] || c['Abitazione'] ||
-      c['Numero cellulare'] || c['Telefono lavoro'] || c['Telefono casa']
-    ).length,
-    withCompany: contacts.filter(c => c['Società'] || c['Organizzazione']).length,
+    withEmail: contacts.filter(c => c[emailCol] || c['Email primaria']).length,
+    withPhone: contacts.filter(c => c[cellCol] || c[uffCol] || c[abCol] || c['Numero cellulare'] || c['Telefono lavoro'] || c['Telefono casa']).length,
+    withCompany: contacts.filter(c => c[dittaCol] || c['Organizzazione']).length,
   };
 }
