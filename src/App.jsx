@@ -143,6 +143,9 @@ export default function App() {
 
   return (
     <div className="app">
+      <div className="noise-overlay" />
+      <div className="digital-rain" />
+
       <header className="header">
         <div className="header-inner">
           <div className="logo-wrap">
