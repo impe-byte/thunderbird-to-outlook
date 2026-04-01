@@ -149,7 +149,7 @@ export default function App() {
       <header className="header">
         <div className="header-inner">
           <div className="logo-wrap">
-            <div className="logo-monogram">iB<span className="cursor-blink">_</span></div>
+            <div className="logo-monogram"><span className="char-i">i</span><span className="char-B">B</span><span className="cursor-blink">_</span></div>
             <div className="logo-headings">
               <div className="logo-title">{t('header.title')}</div>
               <div className="logo-sub">{t('header.subtitle')}</div>
@@ -175,7 +175,7 @@ export default function App() {
             { n: 4, label: t('header.step4') }
           ].map(s => (
             <div key={s.n} className={`step-node ${currentStep === s.n ? 'active' : ''} ${currentStep > s.n ? 'done' : ''}`} title={s.n < currentStep ? "Step completed" : ""}>
-              {currentStep === s.n && <div className="step-monogram">iB<span>_</span></div>}
+              {currentStep === s.n && <div className="step-monogram"><span className="char-i">i</span><span className="char-B">B</span><span>_</span></div>}
               <div className="step-marker">{currentStep > s.n ? '✓' : s.n}</div>
               <div className="step-label">{s.label}</div>
             </div>
