@@ -360,6 +360,273 @@ pre.json-view { font-family: var(--font-mono); font-size: 0.75rem; color: var(--
 .lang-btn.active { background: var(--accent); color: white; border-color: var(--accent); }
 .lang-btn:hover:not(.active) { border-color: var(--text-primary); color: var(--text-primary); }
 
+/* =========================================
+   HUB SCREEN
+   ========================================= */
+.hub-screen {
+  min-height: calc(100vh - 220px);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 3rem 2rem;
+  animation: slideUpFade 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.hub-hero {
+  text-align: center;
+  margin-bottom: 3.5rem;
+}
+
+.hub-hero-eyebrow {
+  font-family: var(--font-mono);
+  font-size: 0.8rem;
+  font-weight: 600;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  color: var(--accent);
+  margin-bottom: 1rem;
+  opacity: 0.9;
+}
+
+.hub-hero h1 {
+  font-size: clamp(2rem, 5vw, 3.2rem);
+  font-weight: 800;
+  color: var(--text-primary);
+  letter-spacing: -0.04em;
+  line-height: 1.1;
+  margin-bottom: 1rem;
+}
+
+.hub-hero h1 .hub-brand-accent {
+  color: var(--accent);
+  text-shadow: 0 0 24px var(--accent-glow);
+}
+
+.hub-hero-desc {
+  font-size: 1.05rem;
+  color: var(--text-muted);
+  max-width: 460px;
+  margin: 0 auto;
+  line-height: 1.65;
+}
+
+/* =========================================
+   HUB CARDS GRID
+   ========================================= */
+.hub-cards {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 1.75rem;
+  width: 100%;
+  max-width: 860px;
+}
+
+.hub-card {
+  position: relative;
+  background: var(--surface);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid var(--border-light);
+  border-radius: 20px;
+  padding: 2.75rem 2.25rem;
+  cursor: pointer;
+  text-align: left;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  transition: all 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+  overflow: hidden;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.25);
+}
+
+/* Animated background shimmer */
+.hub-card::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  border-radius: 20px;
+  transition: opacity 0.4s ease;
+  pointer-events: none;
+}
+
+.hub-card--email::before {
+  background: radial-gradient(ellipse at 30% 30%, rgba(55, 138, 221, 0.12) 0%, transparent 70%);
+}
+
+.hub-card--task::before {
+  background: radial-gradient(ellipse at 30% 30%, rgba(16, 185, 129, 0.12) 0%, transparent 70%);
+}
+
+.hub-card:hover::before { opacity: 1; }
+
+/* Corner glow orb */
+.hub-card::after {
+  content: '';
+  position: absolute;
+  top: -40px;
+  right: -40px;
+  width: 120px;
+  height: 120px;
+  border-radius: 50%;
+  opacity: 0;
+  transition: opacity 0.4s ease, transform 0.4s ease;
+  pointer-events: none;
+}
+
+.hub-card--email::after {
+  background: radial-gradient(circle, rgba(55, 138, 221, 0.25) 0%, transparent 70%);
+}
+
+.hub-card--task::after {
+  background: radial-gradient(circle, rgba(16, 185, 129, 0.25) 0%, transparent 70%);
+}
+
+.hub-card:hover::after {
+  opacity: 1;
+  transform: translate(-10px, 10px);
+}
+
+.hub-card:hover {
+  transform: translateY(-6px);
+  box-shadow: 0 20px 48px rgba(0, 0, 0, 0.35);
+}
+
+.hub-card--email:hover {
+  border-color: rgba(55, 138, 221, 0.55);
+}
+
+.hub-card--task:hover {
+  border-color: rgba(16, 185, 129, 0.55);
+}
+
+.hub-card:active { transform: translateY(-2px); }
+
+.hub-card-badge {
+  position: absolute;
+  top: 1.25rem;
+  right: 1.25rem;
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  padding: 3px 8px;
+  border-radius: 4px;
+}
+
+.hub-card--email .hub-card-badge {
+  background: rgba(55, 138, 221, 0.15);
+  color: var(--accent);
+  border: 1px solid rgba(55, 138, 221, 0.3);
+}
+
+.hub-card--task .hub-card-badge {
+  background: rgba(16, 185, 129, 0.15);
+  color: var(--success);
+  border: 1px solid rgba(16, 185, 129, 0.3);
+}
+
+.hub-card-icon {
+  font-size: 2.75rem;
+  line-height: 1;
+  margin-bottom: 0.5rem;
+  filter: drop-shadow(0 0 12px rgba(55, 138, 221, 0.3));
+  transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.hub-card--task .hub-card-icon {
+  filter: drop-shadow(0 0 12px rgba(16, 185, 129, 0.3));
+}
+
+.hub-card:hover .hub-card-icon { transform: scale(1.12) translateY(-3px); }
+
+.hub-card-title {
+  font-family: var(--font-sans);
+  font-size: 1.4rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  letter-spacing: -0.025em;
+  line-height: 1.2;
+}
+
+.hub-card-desc {
+  font-size: 0.9rem;
+  color: var(--text-muted);
+  line-height: 1.55;
+  flex: 1;
+}
+
+.hub-card-cta {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.9rem;
+  font-weight: 600;
+  margin-top: 1rem;
+  padding: 0.6rem 0;
+  border-top: 1px solid var(--border);
+  width: 100%;
+  transition: gap 0.2s ease;
+}
+
+.hub-card--email .hub-card-cta { color: var(--accent); }
+.hub-card--task .hub-card-cta { color: var(--success); }
+.hub-card:hover .hub-card-cta { gap: 0.85rem; }
+
+/* Hub footer stat line */
+.hub-footer-note {
+  margin-top: 3rem;
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  opacity: 0.6;
+  letter-spacing: 0.05em;
+  text-align: center;
+}
+
+/* =========================================
+   TASK CONVERTER UPLOAD VIEW
+   ========================================= */
+.task-upload-view {
+  animation: slideUpFade 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.task-upload-header {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  margin-bottom: 0.5rem;
+}
+
+.task-upload-icon {
+  font-size: 1.75rem;
+}
+
+/* Back-to-hub button in header */
+.btn-back-hub {
+  background: transparent;
+  color: var(--text-muted);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 0.4rem 0.9rem;
+  font-family: var(--font-sans);
+  font-size: 0.82rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.btn-back-hub:hover {
+  border-color: var(--text-muted);
+  color: var(--text-primary);
+  background: rgba(255, 255, 255, 0.04);
+}
+
 @media (max-width: 768px) {
   .header { padding: 1rem; }
   .header-inner { flex-direction: column; gap: 1rem; text-align: center; }
@@ -370,4 +637,8 @@ pre.json-view { font-family: var(--font-mono); font-size: 0.75rem; color: var(--
   .conflict-body > div:first-child { border-right: none; border-bottom: 1px dashed var(--border); }
   .app-footer { flex-direction: column; text-align: center; gap: 1.5rem; padding: 2rem 1rem; }
   .github-text-link { margin-left: 0; margin-top: 0.5rem; display: block; }
+  .hub-cards { grid-template-columns: 1fr; }
+  .hub-screen { padding: 2rem 1rem; min-height: calc(100vh - 180px); }
+  .hub-hero h1 { font-size: 1.8rem; }
+  .hub-card { padding: 2rem 1.5rem; }
 }
