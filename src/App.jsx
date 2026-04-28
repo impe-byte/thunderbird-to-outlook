@@ -6,6 +6,7 @@ import {
   deduplicateContacts, toCSV, getStats, getOutlookColumns,
   applyCaseScrubbing, applyPhoneScrubbing, applyConflictResolution
 } from './converter.js';
+import { convertIcsToOutlookCsv } from './taskConverter.js';
 
 const GithubIcon = () => (
   <svg className="github-icon" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
@@ -69,15 +70,68 @@ function HubScreen({ onNavigate, t }) {
   );
 }
 
-// ─── TASK CONVERTER UPLOAD (placeholder) ────────────────────────────────────
-function TaskConverterUpload({ onBack, t }) {
+// ─── TASK CONVERTER UPLOAD ───────────────────────────────────────────────────
+function TaskConverterUpload({ onBack }) {
   const [dragging, setDragging] = useState(false);
   const [fileName, setFileName] = useState(null);
+  const [taskCount, setTaskCount] = useState(null);
+  const [error, setError] = useState(null);
+  const [converting, setConverting] = useState(false);
 
-  const handleFile = (file) => {
-    if (file && file.name.toLowerCase().endsWith('.ics')) {
-      setFileName(file.name);
+  const processFile = (file) => {
+    if (!file) return;
+    if (!file.name.toLowerCase().endsWith('.ics')) {
+      setError('Il file deve avere estensione .ics');
+      return;
     }
+    setError(null);
+    setFileName(file.name);
+    setTaskCount(null);
+    setConverting(true);
+
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      try {
+        const icsContent = e.target.result;
+        const csv = convertIcsToOutlookCsv(icsContent);
+
+        if (!csv) {
+          setError('Nessuna attività (VTODO) trovata nel file ICS.');
+          setConverting(false);
+          return;
+        }
+
+        // Count rows (subtract header row and BOM)
+        const lineCount = csv.split('\r\n').filter(Boolean).length - 1;
+        setTaskCount(lineCount);
+
+        // Trigger download
+        const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'tasks_outlook.csv';
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+      } catch (err) {
+        setError(`Errore durante la conversione: ${err.message}`);
+      } finally {
+        setConverting(false);
+      }
+    };
+    reader.onerror = () => {
+      setError('Errore nella lettura del file.');
+      setConverting(false);
+    };
+    reader.readAsText(file, 'UTF-8');
+  };
+
+  const handleDrop = (e) => {
+    e.preventDefault();
+    setDragging(false);
+    processFile(e.dataTransfer.files[0]);
   };
 
   return (
@@ -90,15 +144,16 @@ function TaskConverterUpload({ onBack, t }) {
           </div>
         </div>
         <p className="section-desc">
-          Carica il file <strong>.ics</strong> esportato da Thunderbird (o qualsiasi client compatibile con iCalendar).
-          Le attività VTODO verranno convertite nel formato CSV Attività di Microsoft Outlook.
+          Carica il file <strong>.ics</strong> esportato da Thunderbird (o qualsiasi client iCalendar).
+          Le attività VTODO verranno convertite nel formato CSV Attività di Microsoft Outlook
+          e scaricate automaticamente.
         </p>
 
         <div
           className={`drop-zone ${dragging ? 'dragging' : ''}`}
           onDragOver={e => { e.preventDefault(); setDragging(true); }}
           onDragLeave={() => setDragging(false)}
-          onDrop={e => { e.preventDefault(); setDragging(false); handleFile(e.dataTransfer.files[0]); }}
+          onDrop={handleDrop}
           onClick={() => document.getElementById('ics-input').click()}
         >
           <input
@@ -106,45 +161,73 @@ function TaskConverterUpload({ onBack, t }) {
             type="file"
             accept=".ics"
             style={{ display: 'none' }}
-            onChange={e => handleFile(e.target.files[0])}
+            onChange={e => processFile(e.target.files[0])}
           />
-          <div className="drop-icon">📅</div>
+          <div className="drop-icon">{converting ? '⏳' : '📅'}</div>
           <div className="drop-text">
-            Trascina il file .ics qui<br />
-            <span>oppure clicca per selezionare</span>
+            {converting
+              ? 'Conversione in corso…'
+              : (<>Trascina il file .ics qui<br /><span>oppure clicca per selezionare</span></>)
+            }
           </div>
         </div>
 
-        {fileName && (
+        {/* Success state */}
+        {taskCount !== null && !error && (
+          <div style={{
+            padding: '1.25rem',
+            background: 'rgba(16,185,129,0.08)',
+            border: '1px solid rgba(16,185,129,0.3)',
+            borderRadius: 'var(--radius)',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '0.75rem'
+          }}>
+            <span style={{ fontSize: '1.5rem' }}>🎉</span>
+            <div>
+              <div style={{ fontWeight: 600, color: 'var(--success)', fontSize: '0.95rem' }}>
+                {taskCount} attività convertite con successo!
+              </div>
+              <div style={{ fontSize: '0.82rem', color: 'var(--text-muted)', marginTop: '0.2rem' }}>
+                File <strong>{fileName}</strong> → <strong>tasks_outlook.csv</strong> scaricato.
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Error state */}
+        {error && (
+          <div style={{
+            padding: '1.25rem',
+            background: 'rgba(239,68,68,0.08)',
+            border: '1px solid rgba(239,68,68,0.3)',
+            borderRadius: 'var(--radius)',
+            color: 'var(--danger)',
+            fontSize: '0.9rem'
+          }}>
+            ⚠️ {error}
+          </div>
+        )}
+
+        {/* Loaded file pill */}
+        {fileName && !converting && (
           <div className="files-list">
             <div className="file-pill">
-              <span className="health-icon">✅</span>
+              <span className="health-icon">{error ? '❌' : '✅'}</span>
               <span style={{ fontFamily: 'var(--font-mono)', fontSize: '0.85rem' }}>{fileName}</span>
             </div>
           </div>
         )}
 
-        <div
-          style={{
-            padding: '1.25rem',
-            background: 'rgba(16,185,129,0.06)',
-            border: '1px solid rgba(16,185,129,0.2)',
-            borderRadius: 'var(--radius)',
-            fontSize: '0.85rem',
-            color: 'var(--text-muted)'
-          }}
-        >
-          🚧 <strong style={{ color: 'var(--success)' }}>In sviluppo</strong> — Il motore di conversione VTODO sarà disponibile nel prossimo aggiornamento (Task 3).
-        </div>
-
         <div className="wizard-footer">
           <button className="btn-outline" onClick={onBack}>← Torna all'Hub</button>
           <button
             className="btn-primary"
-            disabled={!fileName}
-            style={{ opacity: fileName ? 1 : 0.4, cursor: fileName ? 'pointer' : 'not-allowed' }}
+            disabled={converting}
+            style={{ opacity: converting ? 0.5 : 1, cursor: converting ? 'not-allowed' : 'pointer' }}
+            onClick={() => document.getElementById('ics-input').click()}
           >
-            ⬇️ Converti e Scarica
+            📅 Carica altro file
           </button>
         </div>
       </div>
