@@ -74,9 +74,10 @@ function HubScreen({ onNavigate, t }) {
 function TaskConverterUpload({ onBack }) {
   const [dragging, setDragging] = useState(false);
   const [fileName, setFileName] = useState(null);
-  const [taskCount, setTaskCount] = useState(null);
   const [error, setError] = useState(null);
   const [converting, setConverting] = useState(false);
+  const [finalCsv, setFinalCsv] = useState(null);
+  const [previewRows, setPreviewRows] = useState([]);
 
   const processFile = (file) => {
     if (!file) return;
@@ -86,7 +87,8 @@ function TaskConverterUpload({ onBack }) {
     }
     setError(null);
     setFileName(file.name);
-    setTaskCount(null);
+    setFinalCsv(null);
+    setPreviewRows([]);
     setConverting(true);
 
     const reader = new FileReader();
@@ -101,20 +103,12 @@ function TaskConverterUpload({ onBack }) {
           return;
         }
 
-        // Count rows (subtract header row and BOM)
-        const lineCount = csv.split('\r\n').filter(Boolean).length - 1;
-        setTaskCount(lineCount);
-
-        // Trigger download
-        const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = 'tasks_outlook.csv';
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        URL.revokeObjectURL(url);
+        // Parse for preview (skip BOM)
+        const strippedCsv = csv.replace(/^\uFEFF/, '');
+        const parsed = Papa.parse(strippedCsv, { header: true, skipEmptyLines: true });
+        
+        setFinalCsv(csv);
+        setPreviewRows(parsed.data);
       } catch (err) {
         setError(`Errore durante la conversione: ${err.message}`);
       } finally {
@@ -128,6 +122,18 @@ function TaskConverterUpload({ onBack }) {
     reader.readAsText(file, 'UTF-8');
   };
 
+  const download = () => {
+    if (!finalCsv) return;
+    const blob = new Blob([finalCsv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'tasks_outlook.csv';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  };
   const handleDrop = (e) => {
     e.preventDefault();
     setDragging(false);
@@ -145,8 +151,8 @@ function TaskConverterUpload({ onBack }) {
         </div>
         <p className="section-desc">
           Carica il file <strong>.ics</strong> esportato da Thunderbird (o qualsiasi client iCalendar).
-          Le attività VTODO verranno convertite nel formato CSV Attività di Microsoft Outlook
-          e scaricate automaticamente.
+          Le attività VTODO verranno convertite nel formato CSV Attività di Microsoft Outlook.
+          Controlla l'anteprima prima di scaricare.
         </p>
 
         <div
@@ -172,26 +178,46 @@ function TaskConverterUpload({ onBack }) {
           </div>
         </div>
 
-        {/* Success state */}
-        {taskCount !== null && !error && (
-          <div style={{
-            padding: '1.25rem',
-            background: 'rgba(16,185,129,0.08)',
-            border: '1px solid rgba(16,185,129,0.3)',
-            borderRadius: 'var(--radius)',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '0.75rem'
-          }}>
-            <span style={{ fontSize: '1.5rem' }}>🎉</span>
-            <div>
-              <div style={{ fontWeight: 600, color: 'var(--success)', fontSize: '0.95rem' }}>
-                {taskCount} attività convertite con successo!
-              </div>
-              <div style={{ fontSize: '0.82rem', color: 'var(--text-muted)', marginTop: '0.2rem' }}>
-                File <strong>{fileName}</strong> → <strong>tasks_outlook.csv</strong> scaricato.
+        {/* Preview State */}
+        {previewRows.length > 0 && !error && (
+          <div style={{ marginTop: '2rem' }}>
+            <div className="stats-row">
+              <div className="stat-box">
+                <div className="stat-val">{previewRows.length}</div>
+                <div className="stat-lbl">Attività Convertite</div>
               </div>
             </div>
+            
+            <h3 style={{ margin: '0.5rem 0 1rem 0', fontSize: '1rem' }}>Anteprima Dati</h3>
+            <div className="table-wrap">
+              <table className="edit-table">
+                <thead>
+                  <tr>
+                    <th>Oggetto</th>
+                    <th>Data inizio</th>
+                    <th>Scadenza</th>
+                    <th>Stato</th>
+                    <th>Priorità</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {previewRows.slice(0, 5).map((row, i) => (
+                    <tr key={i}>
+                      <td>{row['Oggetto']}</td>
+                      <td>{row['Data inizio']}</td>
+                      <td>{row['Scadenza']}</td>
+                      <td>{row['Stato']}</td>
+                      <td>{row['Priorità']}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+            {previewRows.length > 5 && (
+              <div className="section-desc" style={{ textAlign: 'center', marginTop: '1rem' }}>
+                + altre {previewRows.length - 5} attività non mostrate
+              </div>
+            )}
           </div>
         )}
 
@@ -203,14 +229,15 @@ function TaskConverterUpload({ onBack }) {
             border: '1px solid rgba(239,68,68,0.3)',
             borderRadius: 'var(--radius)',
             color: 'var(--danger)',
-            fontSize: '0.9rem'
+            fontSize: '0.9rem',
+            marginTop: '1rem'
           }}>
             ⚠️ {error}
           </div>
         )}
 
         {/* Loaded file pill */}
-        {fileName && !converting && (
+        {fileName && !converting && previewRows.length === 0 && (
           <div className="files-list">
             <div className="file-pill">
               <span className="health-icon">{error ? '❌' : '✅'}</span>
@@ -221,14 +248,21 @@ function TaskConverterUpload({ onBack }) {
 
         <div className="wizard-footer">
           <button className="btn-outline" onClick={onBack}>← Torna all'Hub</button>
-          <button
-            className="btn-primary"
-            disabled={converting}
-            style={{ opacity: converting ? 0.5 : 1, cursor: converting ? 'not-allowed' : 'pointer' }}
-            onClick={() => document.getElementById('ics-input').click()}
-          >
-            📅 Carica altro file
-          </button>
+          
+          {previewRows.length > 0 ? (
+            <button className="btn-primary" onClick={download}>
+              ⬇️ Scarica CSV
+            </button>
+          ) : (
+            <button
+              className="btn-primary"
+              disabled={converting}
+              style={{ opacity: converting ? 0.5 : 1, cursor: converting ? 'not-allowed' : 'pointer' }}
+              onClick={() => document.getElementById('ics-input').click()}
+            >
+              📅 Seleziona File
+            </button>
+          )}
         </div>
       </div>
     </div>

@@ -90,8 +90,8 @@ function extractVtodoBlocks(unfolded) {
  * @returns {string|null}
  */
 function getProp(block, propName) {
-  // Match: PROPNAME optionally followed by params then ':' then value
-  const regex = new RegExp(`^${propName}(?:;[^:]*)?:(.*)$`, 'm');
+  // Match: PROPNAME optionally followed by params (which may contain quoted strings) then ':' then value
+  const regex = new RegExp(`^${propName}(?:;(?:[^:"]|"[^"]*")*)?:(.*)$`, 'm');
   const match = block.match(regex);
   return match ? match[1].trim() : null;
 }

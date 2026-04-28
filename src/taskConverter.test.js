@@ -61,6 +61,17 @@ STATUS:NEEDS-ACTION
 END:VTODO
 END:VCALENDAR`;
 
+/** A VTODO with a quoted parameter containing a colon */
+const ICS_QUOTED_PARAM = `BEGIN:VCALENDAR
+VERSION:2.0
+BEGIN:VTODO
+UID:quoted-000@test
+SUMMARY:Test Quoted
+DTSTART:20260301
+DESCRIPTION;ALTREP="data:text/html,foo:bar":This is the actual description
+END:VTODO
+END:VCALENDAR`;
+
 /** ICS with RFC 5545 line folding */
 const ICS_FOLDED = `BEGIN:VCALENDAR
 VERSION:2.0
@@ -183,6 +194,12 @@ describe('convertIcsToOutlookCsv — field mapping', () => {
     const csv = convertIcsToOutlookCsv(ICS_LOW_PRIORITY);
     const rows = parseCsvOutput(csv);
     expect(rows[0]['Priorità']).toBe('Bassa');
+  });
+
+  it('correctly extracts value when parameter contains quoted colon', () => {
+    const csv = convertIcsToOutlookCsv(ICS_QUOTED_PARAM);
+    const rows = parseCsvOutput(csv);
+    expect(rows[0]['Notes']).toBe('This is the actual description');
   });
 
   it('maps PERCENT-COMPLETE 50 → In corso', () => {
