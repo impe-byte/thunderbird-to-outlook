@@ -37,8 +37,8 @@ function HubScreen({ onNavigate, t }) {
           onClick={() => onNavigate('email-converter')}
         >
           <span className="hub-card-badge">CSV → CSV</span>
-          <div className="hub-card-icon">📧</div>
-          <div className="hub-card-title">Converti Email</div>
+          <div className="hub-card-icon">📇</div>
+          <div className="hub-card-title">Converti Rubrica</div>
           <div className="hub-card-desc">
             Importa la rubrica da Thunderbird e convertila nel formato CSV compatibile con Outlook.
             Supporta deduplicazione, mappatura campi e pulizia dati.
