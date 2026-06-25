@@ -281,6 +281,7 @@ export default function App() {
   const [currentStep, setCurrentStep] = useState(1);
   const [groups, setGroups] = useState([]);
   const [enableSourceTagging, setEnableSourceTagging] = useState(false);
+  const [mergeOutputs, setMergeOutputs] = useState(true);
   const [dragging, setDragging] = useState(false);
   const [resolvedContacts, setResolvedContacts] = useState([]);
   const [conflicts, setConflicts] = useState([]);
@@ -344,14 +345,42 @@ export default function App() {
   const updateGroupName = (id, name) => setGroups(groups.map(g => g.id === id ? { ...g, displayName: name } : g));
 
   const processStep1 = () => {
-    let allContacts = [];
-    groups.forEach(g => {
-      const mapped = g.contacts.map(row => mapThunderbirdToOutlook(row, enableSourceTagging ? g.displayName : '', enableSourceTagging, i18n.language, mappingOverrides));
-      allContacts = allContacts.concat(mapped);
-    });
-    const { resolved, conflicts } = deduplicateContacts(allContacts, i18n.language);
-    setResolvedContacts(resolved);
-    setConflicts(conflicts);
+    let newResolved = [];
+    let newConflicts = [];
+
+    if (mergeOutputs) {
+      let allContacts = [];
+      groups.forEach(g => {
+        const mapped = g.contacts.map(row => mapThunderbirdToOutlook(row, enableSourceTagging ? g.displayName : '', enableSourceTagging, i18n.language, mappingOverrides));
+        allContacts = allContacts.concat(mapped);
+      });
+      const { resolved, conflicts } = deduplicateContacts(allContacts, i18n.language);
+      newResolved = resolved.map(c => ({ ...c, _groupId: 'merged', _originalName: 'rubrica_outlook.csv' }));
+      newConflicts = conflicts.map(c => ({
+        ...c,
+        existing: { ...c.existing, _groupId: 'merged' },
+        incoming: { ...c.incoming, _groupId: 'merged' }
+      }));
+    } else {
+      groups.forEach(g => {
+        const mapped = g.contacts.map(row => mapThunderbirdToOutlook(row, enableSourceTagging ? g.displayName : '', enableSourceTagging, i18n.language, mappingOverrides));
+        const { resolved, conflicts } = deduplicateContacts(mapped, i18n.language);
+        
+        const offset = newResolved.length;
+        newResolved = newResolved.concat(resolved.map(c => ({ ...c, _groupId: g.id, _originalName: g.originalName })));
+        
+        newConflicts = newConflicts.concat(conflicts.map(c => ({
+          ...c,
+          existingIdx: c.existingIdx + offset,
+          _groupName: g.displayName,
+          existing: { ...c.existing, _groupId: g.id, _originalName: g.originalName },
+          incoming: { ...c.incoming, _groupId: g.id, _originalName: g.originalName }
+        })));
+      });
+    }
+
+    setResolvedContacts(newResolved);
+    setConflicts(newConflicts);
     setCurrentStep(2);
   };
 
@@ -372,13 +401,25 @@ export default function App() {
   const handleOverrideChange = (field, to) => setMappingOverrides(prev => ({ ...prev, [field]: to }));
 
   const processStep3 = () => {
-    let reMapped = [];
-    groups.forEach(g => {
-      const mapped = g.contacts.map(row => mapThunderbirdToOutlook(row, enableSourceTagging ? g.displayName : '', enableSourceTagging, i18n.language, mappingOverrides));
-      reMapped = reMapped.concat(mapped);
-    });
-    const { resolved } = deduplicateContacts(reMapped, i18n.language);
-    setFinalContacts(resolved);
+    let newFinal = [];
+
+    if (mergeOutputs) {
+      let reMapped = [];
+      groups.forEach(g => {
+        const mapped = g.contacts.map(row => mapThunderbirdToOutlook(row, enableSourceTagging ? g.displayName : '', enableSourceTagging, i18n.language, mappingOverrides));
+        reMapped = reMapped.concat(mapped);
+      });
+      const { resolved } = deduplicateContacts(reMapped, i18n.language);
+      newFinal = resolved.map(c => ({ ...c, _groupId: 'merged', _originalName: 'rubrica_outlook.csv' }));
+    } else {
+      groups.forEach(g => {
+        const mapped = g.contacts.map(row => mapThunderbirdToOutlook(row, enableSourceTagging ? g.displayName : '', enableSourceTagging, i18n.language, mappingOverrides));
+        const { resolved } = deduplicateContacts(mapped, i18n.language);
+        newFinal = newFinal.concat(resolved.map(c => ({ ...c, _groupId: g.id, _originalName: g.originalName })));
+      });
+    }
+
+    setFinalContacts(newFinal);
     setCurrentStep(4);
   };
 
@@ -390,14 +431,44 @@ export default function App() {
   };
 
   const download = () => {
-    const csvStr = toCSV(finalContacts, i18n.language);
-    const blob = new Blob([csvStr], { type: 'text/csv;charset=utf-8;' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = 'rubrica_outlook.csv';
-    a.click();
-    URL.revokeObjectURL(url);
+    if (mergeOutputs) {
+      const csvStr = toCSV(finalContacts, i18n.language);
+      const blob = new Blob([csvStr], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'rubrica_outlook.csv';
+      a.click();
+      URL.revokeObjectURL(url);
+    } else {
+      const groupsMap = {};
+      finalContacts.forEach(c => {
+        const gId = c._groupId;
+        if (!groupsMap[gId]) groupsMap[gId] = { name: c._originalName, contacts: [] };
+        groupsMap[gId].contacts.push(c);
+      });
+      
+      Object.values(groupsMap).forEach(g => {
+        const csvStr = toCSV(g.contacts, i18n.language);
+        const blob = new Blob([csvStr], { type: 'text/csv;charset=utf-8;' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        
+        let outName = g.name;
+        if (outName.toLowerCase().endsWith('.csv')) {
+            outName = outName.substring(0, outName.length - 4) + '_outlook.csv';
+        } else {
+            outName = outName + '_outlook.csv';
+        }
+        
+        a.download = outName;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+      });
+    }
   };
 
   const emailCol = isIt ? 'Indirizzo posta elettronica' : 'E-mail Address';
@@ -506,6 +577,13 @@ export default function App() {
                     <div className="toggle-row">
                       <span style={{ fontWeight: 500 }}>{t('upload.source_tag')}</span>
                       <div className={`toggle-switch ${enableSourceTagging ? 'on' : ''}`} onClick={() => setEnableSourceTagging(!enableSourceTagging)}>
+                        <div className="toggle-knob" />
+                      </div>
+                    </div>
+                    
+                    <div className="toggle-row" style={{ marginTop: '0.5rem' }}>
+                      <span style={{ fontWeight: 500 }}>Unisci tutti in un unico output CSV</span>
+                      <div className={`toggle-switch ${mergeOutputs ? 'on' : ''}`} onClick={() => setMergeOutputs(!mergeOutputs)}>
                         <div className="toggle-knob" />
                       </div>
                     </div>
@@ -642,7 +720,9 @@ export default function App() {
                 )}
                 <div className="wizard-footer">
                   <button className="btn-outline" onClick={() => setCurrentStep(3)}>← Back</button>
-                  <button className="btn-primary" onClick={download}>⬇️ {t('result.download_btn')}</button>
+                  <button className="btn-primary" onClick={download}>
+                    ⬇️ {mergeOutputs ? t('result.download_btn') : "Scarica File (Separati)"}
+                  </button>
                 </div>
               </div>
             )}
